@@ -5,7 +5,7 @@
  */
 
 
-namespace System.Diagnostics
+namespace iTrace
 {
     /// <summary>
     /// Custom logger based on TraceSource
