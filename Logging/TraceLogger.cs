@@ -1,7 +1,7 @@
 ﻿/*
  *  TraceLogger
  *  Application Logger based on TraceSource
- *  
+ *  The project will soon move to dotnet core
  */
 
 
