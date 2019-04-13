@@ -1,36 +1,41 @@
-﻿/*
+/*
  *  TraceLogger
  *  Application Logger based on TraceSource
  * 
  */
 
+using System;
+using System.Diagnostics;
 
-namespace System.Diagnostics
+namespace App.Diagnostics
 {
     /// <summary>
     /// Custom logger based on TraceSource
     /// </summary>
     public sealed class TraceLogger
     { 
-        TraceSource _trace_source;
-        int _event_id = 1;
-        private static readonly Random getrandom = new Random();
+        TraceSource traceSource;
+        public int EventId { get; private set; }
+        public string Name { get { return traceSource.Name; } }
+        private static readonly Random getRandom = new Random();
         private static readonly object syncLock = new object();
 
+        #region PRIVATE
         /// <summary>
         /// Initialize TraceLogger
         /// </summary>
         /// <param name="sourcename">Source name</param>
         private TraceLogger (string sourcename)
         {
-            _trace_source = new TraceSource(sourcename,SourceLevels.All);
-            _event_id = generateEventId(); 
+            traceSource = new TraceSource(sourcename,SourceLevels.All); 
+            EventId = GenerateEventId(); 
+            
         }
 
         private TraceLogger (string sourcename, ushort eventId)
         {
-            _trace_source = new TraceSource(sourcename, SourceLevels.All);
-            _event_id = eventId;
+            traceSource = new TraceSource(sourcename, SourceLevels.All);
+            EventId = eventId;
         }
 
         /// <summary>
@@ -39,8 +44,9 @@ namespace System.Diagnostics
         /// <param name="sourcename">the source name </param>
         /// <param name="eventId">0 will create a new event id randomly, other is just parameter</param>
         /// <returns></returns>
-        public static TraceLogger Setup (string sourcename, ushort eventId = 0)
+        public static TraceLogger Setup (string sourcename = "*", ushort eventId = 0)
         {
+            
             if(eventId != 0)
                 return new TraceLogger(sourcename, eventId);
 
@@ -48,42 +54,63 @@ namespace System.Diagnostics
         }
 
         //Generate random _event_id from 1 - 65536
-        private static int generateEventId ()
+        private static int GenerateEventId ()
         {
             lock (syncLock)
             { // synchronize
-                return getrandom.Next(1, 65536);
+                return getRandom.Next(1, 65536);
             }
         }
 
         // log event
         private void LogEvent (TraceEventType type, string message)
         {
-            _trace_source.TraceEvent(type, _event_id, message);
+            traceSource.TraceEvent(type, EventId, message);
+        }
+        #endregion
+
+        public void If(bool condition, TraceEventType traceEventType, object arg)
+        {
+            if (condition)
+            {
+                TraceData(traceEventType, arg);
+            }
+        }
+        public void If(bool condition, TraceEventType traceEventType, string message)
+        {
+           if(condition)
+            {
+                TraceEvent(traceEventType, message);
+            }
+        }
+
+        public void TraceEvent(TraceEventType traceEventType, string message)
+        {
+            traceSource.TraceEvent(traceEventType, EventId, message);
+        }
+
+        public void TraceData(TraceEventType traceEventType, object arg)
+        {
+            traceSource.TraceData(traceEventType, EventId, arg); 
         }
 
         /// <summary>
         /// LogException to Trace listeners
         /// </summary>
-        /// <param name="ex"> exception object</param>
-        public void LogException (Exception ex)
+        /// <param name="exception"> exception object</param>
+        public void LogException (Exception exception)
         {
-            _trace_source.TraceData(TraceEventType.Critical, _event_id, ex);
-        }
-        /// <summary>
-        /// LogException to Trace listeners
-        /// </summary>
-        public void LogException<T> (T ex)
-        {
-            _trace_source.TraceData(TraceEventType.Critical, _event_id, ex);
+            traceSource.TraceData(TraceEventType.Critical, EventId, exception);
         }
 
+
+       
         /// <summary>
         /// Fatal Error or Application crash
         /// </summary>
         public void Critical (string format, params object[] args)
         {
-            LogEvent(TraceEventType.Critical, string.Format(format, args));
+            Critical(string.Format(format, args));
         }
 
         /// <summary>
@@ -99,7 +126,7 @@ namespace System.Diagnostics
         /// </summary>
         public void Error (string format, params object[] args)
         {
-            LogEvent(TraceEventType.Error, string.Format(format, args));
+            Error(string.Format(format, args));
         }
 
         /// <summary>
@@ -115,7 +142,7 @@ namespace System.Diagnostics
         /// </summary>
         public void Warn (string format, params object[] args)
         {
-            LogEvent(TraceEventType.Warning, string.Format(format, args));
+            Warn(string.Format(format, args));
         }
         /// <summary>
         /// Noncritical problem
@@ -130,7 +157,7 @@ namespace System.Diagnostics
         /// </summary>
         public void Info (string format, params object[] args)
         {
-            LogEvent(TraceEventType.Information, string.Format(format, args));
+            Info(string.Format(format, args));
         }
         /// <summary>
         /// Informational Message
@@ -145,7 +172,7 @@ namespace System.Diagnostics
         /// </summary>
         public void Verbose (string format, params object[] args)
         {
-            LogEvent(TraceEventType.Verbose, string.Format(format, args));
+            Verbose(string.Format(format, args));
         }
 
         /// <summary>
